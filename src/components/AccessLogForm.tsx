@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   useAccount,
   useChainId,
@@ -43,9 +43,12 @@ export function AccessLogForm() {
     chainId: MONAD_TESTNET_CHAIN_ID,
   });
 
-  // Handle successful confirmation
+  const handledTxHashRef = useRef<string | null>(null);
+
+  // Handle successful confirmation exactly once per transaction
   useEffect(() => {
-    if (isConfirmed) {
+    if (isConfirmed && txHash && handledTxHashRef.current !== txHash) {
+      handledTxHashRef.current = txHash;
       // Clear form inputs
       setPatientId("");
       setReason("");
@@ -56,7 +59,7 @@ export function AccessLogForm() {
       // Trigger automatic refresh of history and metrics
       notifyLogAdded();
     }
-  }, [isConfirmed, notifyLogAdded]);
+  }, [isConfirmed, txHash, notifyLogAdded]);
 
   // Handle write / receipt errors
   useEffect(() => {

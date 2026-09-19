@@ -7,7 +7,6 @@ import {
   MEDICAL_ACCESS_LOGGER_ABI,
 } from "@/config/contract";
 import { MONAD_TESTNET_CHAIN_ID } from "@/config/monad";
-
 import { useContractContext } from "@/context/ContractContext";
 
 export function ContractStatusCard() {
@@ -15,6 +14,7 @@ export function ContractStatusCard() {
   const { contractAddress, setContractAddress, refreshTrigger } = useContractContext();
   const [customAddressInput, setCustomAddressInput] = useState("");
   const [isEditingAddress, setIsEditingAddress] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Read admin from contract
   const {
@@ -67,6 +67,16 @@ export function ContractStatusCard() {
     }
   }, [refreshTrigger, refetchLogs, refetchAuth, address]);
 
+  // Auto-correct to real deployed contract if set to wallet address or old Remix VM
+  useEffect(() => {
+    if (
+      contractAddress.toLowerCase() === "0x7dab4382fc76280fe2324ddf7ea41cde3a2bf57a" ||
+      contractAddress.toLowerCase() === "0xd9145cce52d386f254917e481eb44e9943f39138"
+    ) {
+      setContractAddress(MEDICAL_ACCESS_LOGGER_ADDRESS);
+    }
+  }, [contractAddress, setContractAddress]);
+
   const handleRefresh = () => {
     refetchAdmin();
     refetchLogs();
@@ -94,8 +104,15 @@ export function ContractStatusCard() {
     }
   };
 
+  const copyAddress = () => {
+    navigator.clipboard.writeText(contractAddress);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
-    <div className="panel-card" id="contract-connection-panel">
+    <div className="panel-card" id="blockchain-info-panel">
+      {/* Section Title */}
       <div className="card-title-row">
         <h2>
           <svg
@@ -109,11 +126,14 @@ export function ContractStatusCard() {
             strokeLinecap="round"
             strokeLinejoin="round"
           >
-            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+            <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+            <line x1="6" y1="6" x2="6.01" y2="6" />
+            <line x1="6" y1="18" x2="6.01" y2="18" />
           </svg>
-          Smart Contract Status
+          Blockchain Information
         </h2>
+
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <button
             onClick={handleRefresh}
@@ -136,24 +156,25 @@ export function ContractStatusCard() {
             </svg>
             Sync
           </button>
+
           <span
             className="card-badge"
             style={{
               background: isContractReachable
                 ? "rgba(16, 185, 129, 0.15)"
                 : isZeroBytecode
-                  ? "rgba(239, 68, 68, 0.15)"
-                  : "rgba(245, 158, 11, 0.15)",
+                ? "rgba(239, 68, 68, 0.15)"
+                : "rgba(245, 158, 11, 0.15)",
               color: isContractReachable
                 ? "#6ee7b7"
                 : isZeroBytecode
-                  ? "#fca5a5"
-                  : "#fcd34d",
+                ? "#fca5a5"
+                : "#fcd34d",
               borderColor: isContractReachable
                 ? "rgba(16, 185, 129, 0.3)"
                 : isZeroBytecode
-                  ? "rgba(239, 68, 68, 0.3)"
-                  : "rgba(245, 158, 11, 0.3)",
+                ? "rgba(239, 68, 68, 0.3)"
+                : "rgba(245, 158, 11, 0.3)",
               display: "flex",
               alignItems: "center",
               gap: "0.35rem",
@@ -167,15 +188,15 @@ export function ContractStatusCard() {
                 backgroundColor: isContractReachable
                   ? "#10b981"
                   : isZeroBytecode
-                    ? "#ef4444"
-                    : "#f59e0b",
+                  ? "#ef4444"
+                  : "#f59e0b",
               }}
             />
             {isContractReachable
               ? "Contract Active"
               : isZeroBytecode
-                ? "Remix VM / No Bytecode on Testnet"
-                : "Checking RPC..."}
+              ? "Invalid Contract Address"
+              : "Connecting..."}
           </span>
         </div>
       </div>
@@ -203,75 +224,57 @@ export function ContractStatusCard() {
             <p style={{ color: "#e2e8f0", fontSize: "0.8rem", lineHeight: "1.4" }}>
               {contractAddress.toLowerCase() === "0x7dab4382fc76280fe2324ddf7ea41cde3a2bf57a"
                 ? "Target address is currently set to your MetaMask wallet address (EOA) instead of the deployed contract address."
-                : contractAddress.toLowerCase() === "0xd9145cce52d386f254917e481eb44e9943f39138"
-                ? "Target address is currently set to Remix's default in-memory VM address."
                 : "The current address is not a deployed contract on Monad Testnet."}
             </p>
-            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.2rem" }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setContractAddress(MEDICAL_ACCESS_LOGGER_ADDRESS);
-                  setIsEditingAddress(false);
-                }}
-                style={{
-                  padding: "0.45rem 0.8rem",
-                  borderRadius: "8px",
-                  background: "var(--accent-cyan)",
-                  border: "none",
-                  color: "#000",
-                  fontWeight: 600,
-                  fontSize: "0.78rem",
-                  cursor: "pointer",
-                }}
-              >
-                ✓ Set to Deployed Contract: {MEDICAL_ACCESS_LOGGER_ADDRESS.substring(0, 10)}...
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsEditingAddress(true)}
-                style={{
-                  padding: "0.45rem 0.75rem",
-                  borderRadius: "8px",
-                  background: "rgba(255, 255, 255, 0.08)",
-                  border: "1px solid rgba(255, 255, 255, 0.2)",
-                  color: "#fff",
-                  fontSize: "0.78rem",
-                  cursor: "pointer",
-                }}
-              >
-                Custom Address ✎
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setContractAddress(MEDICAL_ACCESS_LOGGER_ADDRESS);
+                setIsEditingAddress(false);
+              }}
+              style={{
+                alignSelf: "flex-start",
+                padding: "0.45rem 0.8rem",
+                borderRadius: "8px",
+                background: "var(--accent-cyan)",
+                border: "none",
+                color: "#000",
+                fontWeight: 600,
+                fontSize: "0.78rem",
+                cursor: "pointer",
+              }}
+            >
+              ✓ Set to Deployed Contract: {MEDICAL_ACCESS_LOGGER_ADDRESS.substring(0, 10)}...
+            </button>
           </div>
         )}
 
-        {/* Contract Address row */}
+        {/* Contract Address Section */}
         <div
           style={{
             background: "rgba(0, 0, 0, 0.25)",
-            padding: "0.85rem 1rem",
+            padding: "0.9rem 1rem",
             borderRadius: "10px",
-            border: "1px solid rgba(255, 255, 255, 0.05)",
+            border: "1px solid rgba(255, 255, 255, 0.06)",
           }}
         >
           <div
             style={{
-              fontSize: "0.75rem",
+              fontSize: "0.74rem",
               color: "var(--text-muted)",
               textTransform: "uppercase",
               letterSpacing: "0.05em",
-              marginBottom: "0.3rem",
+              marginBottom: "0.4rem",
               display: "flex",
               justifyContent: "space-between",
             }}
           >
-            <span>Target Contract Address</span>
-            <span>Monad Testnet (10143)</span>
+            <span>Contract Address (MedicalAccessLogger)</span>
+            <span style={{ color: "var(--accent-cyan)", fontWeight: 600 }}>Monad Testnet</span>
           </div>
 
           {isEditingAddress ? (
-            <form onSubmit={handleApplyCustomAddress} style={{ display: "flex", gap: "0.5rem", marginTop: "0.4rem" }}>
+            <form onSubmit={handleApplyCustomAddress} style={{ display: "flex", gap: "0.5rem", marginTop: "0.3rem" }}>
               <input
                 type="text"
                 value={customAddressInput}
@@ -333,7 +336,7 @@ export function ContractStatusCard() {
                 style={{
                   fontFamily: "var(--font-mono)",
                   color: "var(--accent-cyan)",
-                  fontSize: "0.88rem",
+                  fontSize: "0.86rem",
                   wordBreak: "break-all",
                 }}
               >
@@ -341,51 +344,53 @@ export function ContractStatusCard() {
               </code>
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 <button
-                  onClick={() => {
-                    setCustomAddressInput(contractAddress);
-                    setIsEditingAddress(true);
-                  }}
-                  title="Change address"
+                  onClick={copyAddress}
+                  title="Copy contract address"
                   style={{
                     fontSize: "0.75rem",
-                    color: "var(--text-secondary)",
-                    background: "transparent",
-                    border: "none",
+                    color: copied ? "#34d399" : "var(--text-secondary)",
+                    background: "rgba(255, 255, 255, 0.05)",
+                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    borderRadius: "6px",
+                    padding: "0.2rem 0.5rem",
                     cursor: "pointer",
-                    textDecoration: "underline",
                   }}
                 >
-                  Edit
+                  {copied ? "✓ Copied" : "Copy"}
                 </button>
                 <a
                   href={`https://testnet.monadexplorer.com/address/${contractAddress}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
-                    fontSize: "0.78rem",
+                    fontSize: "0.75rem",
                     color: "var(--text-highlight)",
                     textDecoration: "none",
+                    background: "rgba(56, 189, 248, 0.08)",
+                    border: "1px solid rgba(56, 189, 248, 0.25)",
+                    borderRadius: "6px",
+                    padding: "0.2rem 0.5rem",
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: "0.3rem",
+                    gap: "0.2rem",
                   }}
                 >
-                  View on Explorer ↗
+                  Explorer ↗
                 </a>
               </div>
             </div>
           )}
         </div>
 
-        {/* Contract Metrics Grid */}
+        {/* Key Blockchain Metrics: Network, Contract Address, Number of Records */}
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
             gap: "0.75rem",
           }}
         >
-          {/* Admin Address */}
+          {/* Network */}
           <div
             style={{
               background: "rgba(255, 255, 255, 0.02)",
@@ -395,22 +400,17 @@ export function ContractStatusCard() {
             }}
           >
             <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>
-              CONTRACT ADMIN
+              NETWORK
             </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.82rem", color: "var(--text-primary)" }}>
-              {isAdminLoading
-                ? "Reading on-chain..."
-                : isZeroBytecode
-                  ? "Pending deployment"
-                  : adminAddress
-                    ? `${(adminAddress as string).substring(0, 8)}...${(adminAddress as string).substring(
-                      (adminAddress as string).length - 6
-                    )}`
-                    : "Not deployed"}
+            <div style={{ fontSize: "0.85rem", fontWeight: 600, color: "#a78bfa" }}>
+              Monad Testnet
+            </div>
+            <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
+              Chain ID 10143
             </div>
           </div>
 
-          {/* On-Chain Log Count */}
+          {/* Number of Access Records */}
           <div
             style={{
               background: "rgba(255, 255, 255, 0.02)",
@@ -420,17 +420,20 @@ export function ContractStatusCard() {
             }}
           >
             <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>
-              ON-CHAIN AUDIT LOGS
+              NUMBER OF ACCESS RECORDS
             </div>
             <div
               style={{
                 fontFamily: "var(--font-mono)",
-                fontSize: "1.1rem",
+                fontSize: "1.25rem",
                 fontWeight: 700,
                 color: "var(--accent-cyan)",
               }}
             >
               {isLogsLoading ? "..." : isLogsError ? "0" : logsCount !== undefined ? String(logsCount) : "0"}
+            </div>
+            <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
+              Immutable On-Chain
             </div>
           </div>
 
@@ -444,9 +447,9 @@ export function ContractStatusCard() {
             }}
           >
             <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>
-              CALLER ROLE
+              YOUR STATUS
             </div>
-            <div style={{ fontSize: "0.82rem", fontWeight: 600 }}>
+            <div style={{ fontSize: "0.85rem", fontWeight: 600, marginTop: "2px" }}>
               {!isConnected ? (
                 <span style={{ color: "var(--text-muted)" }}>Wallet Disconnected</span>
               ) : isAuthLoading ? (
@@ -459,25 +462,105 @@ export function ContractStatusCard() {
                 <span style={{ color: "#f59e0b" }}>Not Authorized ⚠</span>
               )}
             </div>
+            <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
+              {isCallerAdmin ? "Full Permission" : isAuthorized ? "Authorized to Log" : "Read Only"}
+            </div>
           </div>
         </div>
 
-        {/* Communication confirmation banner */}
+        {/* On-Chain Explorer & Source Verification Section */}
+        <div
+          style={{
+            background: "rgba(139, 92, 246, 0.06)",
+            border: "1px solid rgba(139, 92, 246, 0.2)",
+            borderRadius: "10px",
+            padding: "0.85rem 1rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.5rem",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: "0.82rem", fontWeight: 600, color: "#c084fc", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+              <span>🔍</span>
+              <span>Monad Testnet Block Explorer</span>
+            </span>
+            <a
+              href={`https://testnet.monadexplorer.com/address/${contractAddress}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontSize: "0.78rem",
+                color: "#38bdf8",
+                textDecoration: "none",
+                fontWeight: 600,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.25rem",
+              }}
+            >
+              Open Full Explorer Page ↗
+            </a>
+          </div>
+
+          <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)", lineHeight: "1.4", margin: 0 }}>
+            Every access request recorded here is a permanent, verifiable EVM transaction with cryptographic proof on the Monad blockchain.
+          </p>
+
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.2rem" }}>
+            <a
+              href={`https://testnet.monadexplorer.com/address/${contractAddress}#transactions`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontSize: "0.74rem",
+                padding: "0.25rem 0.55rem",
+                borderRadius: "6px",
+                background: "rgba(255, 255, 255, 0.05)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+                color: "var(--text-primary)",
+                textDecoration: "none",
+              }}
+            >
+              View Contract Transactions ↗
+            </a>
+            {adminAddress && (
+              <a
+                href={`https://testnet.monadexplorer.com/address/${adminAddress}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  fontSize: "0.74rem",
+                  padding: "0.25rem 0.55rem",
+                  borderRadius: "6px",
+                  background: "rgba(255, 255, 255, 0.05)",
+                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  color: "var(--text-primary)",
+                  textDecoration: "none",
+                }}
+              >
+                View Admin Wallet ↗
+              </a>
+            )}
+          </div>
+        </div>
+
+        {/* Security Notice Reminder */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             gap: "0.6rem",
-            fontSize: "0.8rem",
+            fontSize: "0.78rem",
             color: "var(--text-secondary)",
-            background: "rgba(6, 182, 212, 0.06)",
+            background: "rgba(6, 182, 212, 0.05)",
             border: "1px solid rgba(6, 182, 212, 0.15)",
             padding: "0.6rem 0.85rem",
             borderRadius: "8px",
           }}
         >
-          <span style={{ color: "var(--accent-cyan)", fontWeight: 700 }}>RPC Link:</span>
-          <span>Next.js ⇄ Viem / Wagmi ⇄ Monad Testnet (Chain ID 10143) ⇄ MedicalAccessLogger</span>
+          <span style={{ color: "var(--accent-cyan)", fontWeight: 700 }}>Protocol:</span>
+          <span>Zero PHI on-chain • Real-time EVM event streaming • Sub-second Monad finality</span>
         </div>
       </div>
     </div>

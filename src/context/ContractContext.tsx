@@ -1,6 +1,13 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import { MEDICAL_ACCESS_LOGGER_ADDRESS } from "@/config/contract";
 
 interface ContractContextType {
@@ -27,7 +34,6 @@ export function ContractProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("monad_contract_address");
-      // If saved address is the old Remix VM address or the deployer wallet address, reset to real contract
       if (
         saved &&
         saved.startsWith("0x") &&
@@ -43,26 +49,29 @@ export function ContractProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const setContractAddress = (address: `0x${string}`) => {
+  const setContractAddress = useCallback((address: `0x${string}`) => {
     setContractAddressState(address);
     if (typeof window !== "undefined") {
       localStorage.setItem("monad_contract_address", address);
     }
-  };
+  }, []);
 
-  const notifyLogAdded = () => {
+  const notifyLogAdded = useCallback(() => {
     setRefreshTrigger((prev) => prev + 1);
-  };
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({
+      contractAddress,
+      setContractAddress,
+      refreshTrigger,
+      notifyLogAdded,
+    }),
+    [contractAddress, setContractAddress, refreshTrigger, notifyLogAdded]
+  );
 
   return (
-    <ContractContext.Provider
-      value={{
-        contractAddress,
-        setContractAddress,
-        refreshTrigger,
-        notifyLogAdded,
-      }}
-    >
+    <ContractContext.Provider value={contextValue}>
       {children}
     </ContractContext.Provider>
   );
