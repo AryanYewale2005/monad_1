@@ -1,89 +1,23 @@
 "use client";
 
 import React, { useState } from "react";
-
-interface AccessRecord {
-  id: string;
-  patientId: string;
-  requester: string;
-  reason: string;
-  timestamp: string;
-  txHash: string;
-  blockNumber: number;
-  status: "Verified" | "Confirmed" | "Recorded";
-}
+import { useAccount } from "wagmi";
+import { WalletButton } from "@/components/WalletButton";
+import { ContractStatusCard } from "@/components/ContractStatusCard";
+import { MEDICAL_ACCESS_LOGGER_ADDRESS } from "@/config/contract";
 
 export default function Home() {
-  const [isWalletConnected, setIsWalletConnected] = useState(false);
+  const { isConnected, address } = useAccount();
   const [patientId, setPatientId] = useState("");
   const [reason, setReason] = useState("");
-  const [isLogging, setIsLogging] = useState(false);
-  const [latestTx, setLatestTx] = useState<AccessRecord | null>(null);
-  const [history, setHistory] = useState<AccessRecord[]>([]);
 
-  // Sample quick reasons for convenient testing
   const sampleReasons = [
     "Emergency Care Review",
-    "Cardiology Follow-up",
-    "Prescription Verification",
-    "Surgical Clearance",
-    "Clinical Research Audit",
+    "Cardiology Consultation",
+    "Prescription Audit",
+    "Pre-Surgical Clearance",
+    "HIPAA Compliance Verification",
   ];
-
-  const handleConnectWallet = () => {
-    setIsWalletConnected((prev) => !prev);
-  };
-
-  const handleLogAccess = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!patientId.trim() || !reason.trim()) return;
-
-    setIsLogging(true);
-
-    // Simulate blockchain latency (e.g. 600ms on Monad high-throughput EVM)
-    setTimeout(() => {
-      const now = new Date();
-      const formattedTime = now.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }) + " " + now.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      });
-
-      const randomHex = Array.from({ length: 12 }, () =>
-        Math.floor(Math.random() * 16).toString(16)
-      ).join("");
-      
-      const newRecord: AccessRecord = {
-        id: "REC-" + Math.floor(100000 + Math.random() * 900000),
-        patientId: patientId.trim().toUpperCase(),
-        requester: isWalletConnected
-          ? "0x742d...44e9 (Dr. Reynolds)"
-          : "0x3f98...a12c (Staff Auditor)",
-        reason: reason.trim(),
-        timestamp: formattedTime,
-        txHash: `0x${randomHex}...${Math.floor(1000 + Math.random() * 9000).toString(16)}`,
-        blockNumber: 14920800 + Math.floor(Math.random() * 500),
-        status: "Verified",
-      };
-
-      setLatestTx(newRecord);
-      setHistory((prev) => [newRecord, ...prev]);
-      setPatientId("");
-      setReason("");
-      setIsLogging(false);
-    }, 600);
-  };
-
-  const resetToInitialState = () => {
-    setLatestTx(null);
-    setHistory([]);
-    setPatientId("");
-    setReason("");
-  };
 
   return (
     <div className="dashboard-container">
@@ -116,48 +50,146 @@ export default function Home() {
               </span>
             </h1>
             <p className="subtitle">
-              Blockchain-Based Medical Data Access Auditing
+              Decentralized Audit Trail • Zero PHI On-Chain • Real-Time EVM Logging
             </p>
           </div>
         </div>
 
         <div className="header-actions">
-          <button
-            id="connect-wallet-btn"
-            className={`btn-wallet ${isWalletConnected ? "connected" : ""}`}
-            onClick={handleConnectWallet}
-            aria-label="Connect or disconnect Web3 wallet"
-          >
-            {/* Wallet SVG Icon */}
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1" />
-              <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4" />
-            </svg>
-            <span>
-              {isWalletConnected
-                ? "Connected: 0x742d...44e9"
-                : "Connect Wallet"}
-            </span>
-          </button>
+          <WalletButton />
         </div>
       </header>
 
-      {/* Main Two-Column Grid: Access Patient Record & Transaction Status */}
-      <div className="dashboard-grid">
-        {/* Section 1: Access Patient Record */}
-        <section
-          className="panel-card"
-          aria-labelledby="access-record-title"
+      {/* Integration Status Highlights */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: "1rem",
+        }}
+      >
+        <div
+          style={{
+            background: "linear-gradient(135deg, rgba(6, 182, 212, 0.08), rgba(59, 130, 246, 0.08))",
+            border: "1px solid rgba(6, 182, 212, 0.25)",
+            borderRadius: "12px",
+            padding: "1rem 1.25rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "1rem",
+          }}
         >
+          <div
+            style={{
+              width: "40px",
+              height: "40px",
+              borderRadius: "10px",
+              background: "rgba(6, 182, 212, 0.15)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--accent-cyan)",
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+              <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+            </svg>
+          </div>
+          <div>
+            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase" }}>
+              STEP 1: WALLET
+            </div>
+            <div style={{ fontSize: "0.92rem", fontWeight: 600, color: isConnected ? "#34d399" : "#e2e8f0" }}>
+              {isConnected ? `Connected: ${address?.substring(0, 6)}...${address?.slice(-4)}` : "Waiting for connection"}
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            background: "linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(6, 182, 212, 0.08))",
+            border: "1px solid rgba(139, 92, 246, 0.25)",
+            borderRadius: "12px",
+            padding: "1rem 1.25rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "1rem",
+          }}
+        >
+          <div
+            style={{
+              width: "40px",
+              height: "40px",
+              borderRadius: "10px",
+              background: "rgba(139, 92, 246, 0.15)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#a78bfa",
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20" />
+              <path d="M2 12h20" />
+            </svg>
+          </div>
+          <div>
+            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase" }}>
+              STEP 2: NETWORK
+            </div>
+            <div style={{ fontSize: "0.92rem", fontWeight: 600, color: "#a78bfa" }}>
+              Monad Testnet (Chain ID 10143)
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            background: "linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(6, 182, 212, 0.08))",
+            border: "1px solid rgba(16, 185, 129, 0.25)",
+            borderRadius: "12px",
+            padding: "1rem 1.25rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "1rem",
+          }}
+        >
+          <div
+            style={{
+              width: "40px",
+              height: "40px",
+              borderRadius: "10px",
+              background: "rgba(16, 185, 129, 0.15)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--accent-emerald)",
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <div>
+            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase" }}>
+              STEP 3: SMART CONTRACT
+            </div>
+            <div style={{ fontSize: "0.92rem", fontWeight: 600, color: "#34d399" }}>
+              Active on Monad Testnet
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Grid: Smart Contract Status & Access Logger Preview */}
+      <div className="dashboard-grid">
+        {/* Left Column: Live Smart Contract Connection via Wagmi / Viem */}
+        <ContractStatusCard />
+
+        {/* Right Column: Access Logging Interface (Prepared for Next Step) */}
+        <section className="panel-card" aria-labelledby="access-record-title">
           <div className="card-title-row">
             <h2 id="access-record-title">
               <svg
@@ -177,16 +209,62 @@ export default function Home() {
                 <line x1="16" y1="17" x2="8" y2="17" />
                 <polyline points="10 9 9 9 8 9" />
               </svg>
-              Access Patient Record
+              Access Log Entry
             </h2>
-            <span className="card-badge">Cryptographic Log</span>
+            <span
+              className="card-badge"
+              style={{
+                background: "rgba(56, 189, 248, 0.1)",
+                color: "#38bdf8",
+                borderColor: "rgba(56, 189, 248, 0.25)",
+              }}
+            >
+              Contract Write Ready
+            </span>
           </div>
 
-          <form className="access-form" onSubmit={handleLogAccess}>
+          <div
+            style={{
+              background: "rgba(245, 158, 11, 0.1)",
+              border: "1px solid rgba(245, 158, 11, 0.25)",
+              borderRadius: "10px",
+              padding: "0.85rem 1rem",
+              fontSize: "0.84rem",
+              color: "#fcd34d",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "0.6rem",
+            }}
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              style={{ flexShrink: 0, marginTop: "2px" }}
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <div>
+              <strong>Flow Checkpoint:</strong> Wallet & Contract connectivity is active. The{" "}
+              <code>logAccess</code> on-chain transaction execution will be wired in the upcoming step.
+            </div>
+          </div>
+
+          <form
+            className="access-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+            }}
+          >
             <div className="form-group">
               <label htmlFor="patient-id-input" className="form-label">
-                <span>Patient Record ID</span>
-                <span className="req">*Required</span>
+                <span>Patient Record ID / Reference</span>
+                <span className="req">*Off-chain Reference Only</span>
               </label>
               <div className="input-container">
                 <svg
@@ -207,10 +285,10 @@ export default function Home() {
                   id="patient-id-input"
                   type="text"
                   className="form-input"
-                  placeholder="e.g. PAT-9042 or 8d92a1"
+                  placeholder="e.g. PAT-9042 or REF-8821"
                   value={patientId}
                   onChange={(e) => setPatientId(e.target.value)}
-                  required
+                  disabled={!isConnected}
                 />
               </div>
             </div>
@@ -218,7 +296,7 @@ export default function Home() {
             <div className="form-group">
               <label htmlFor="reason-input" className="form-label">
                 <span>Reason for Access</span>
-                <span className="req">*Required</span>
+                <span className="req">*Audit Trail Justification</span>
               </label>
               <div className="input-container">
                 <svg
@@ -241,7 +319,7 @@ export default function Home() {
                   placeholder="e.g. Emergency Care Consultation"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
-                  required
+                  disabled={!isConnected}
                 />
               </div>
               <div className="quick-reasons">
@@ -249,340 +327,73 @@ export default function Home() {
                   <button
                     key={r}
                     type="button"
-                    className="quick-chip"
+                    className="tag-btn"
                     onClick={() => setReason(r)}
+                    disabled={!isConnected}
                   >
-                    + {r}
+                    {r}
                   </button>
                 ))}
               </div>
             </div>
 
             <button
-              id="log-access-btn"
-              type="submit"
-              className="btn-log-access"
-              disabled={isLogging || !patientId.trim() || !reason.trim()}
+              type="button"
+              className="btn-primary"
+              disabled={true}
+              style={{
+                opacity: 0.7,
+                cursor: "not-allowed",
+              }}
+              title="logAccess transaction will be activated in the next step"
             >
-              {isLogging ? (
-                <>
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="spin"
-                    style={{ animation: "spin 1s linear infinite" }}
-                  >
-                    <line x1="12" y1="2" x2="12" y2="6" />
-                    <line x1="12" y1="18" x2="12" y2="22" />
-                    <line x1="4.93" y1="4.93" x2="7.76" y2="7.76" />
-                    <line x1="16.24" y1="16.24" x2="19.07" y2="19.07" />
-                    <line x1="2" y1="12" x2="6" y2="12" />
-                    <line x1="18" y1="12" x2="22" y2="12" />
-                    <line x1="4.93" y1="19.07" x2="7.76" y2="16.24" />
-                    <line x1="16.24" y1="7.76" x2="19.07" y2="4.93" />
-                  </svg>
-                  <span>Broadcasting to Ledger...</span>
-                </>
-              ) : (
-                <>
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-                  </svg>
-                  <span>LOG ACCESS</span>
-                </>
-              )}
+              <span>logAccess() Ready for Activation</span>
             </button>
           </form>
         </section>
-
-        {/* Section 2: Transaction Status */}
-        <section
-          className="panel-card"
-          aria-labelledby="tx-status-title"
-        >
-          <div className="card-title-row">
-            <h2 id="tx-status-title">
-              <svg
-                className="icon"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
-              Transaction Status
-            </h2>
-            <span className="card-badge">Live Ledger State</span>
-          </div>
-
-          <div className="tx-status-content">
-            {!latestTx ? (
-              /* Initial State Required: "No transaction yet" */
-              <div className="tx-empty-state">
-                <div className="tx-empty-icon">
-                  <svg
-                    width="26"
-                    height="26"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </div>
-                <p>No transaction yet</p>
-                <span className="tx-empty-sub">
-                  Submit an access request to generate a tamper-evident blockchain audit hash.
-                </span>
-              </div>
-            ) : (
-              <div className="tx-live-card">
-                <div className="tx-live-header">
-                  <span className="tx-status-pill">
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    Confirmed on Blockchain
-                  </span>
-                  <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                    Block #{latestTx.blockNumber}
-                  </span>
-                </div>
-
-                <div className="tx-field-grid">
-                  <div className="tx-field">
-                    <span className="tx-field-label">Transaction Hash</span>
-                    <span className="tx-field-val highlight">
-                      {latestTx.txHash}
-                    </span>
-                  </div>
-                  <div className="tx-field">
-                    <span className="tx-field-label">Timestamp</span>
-                    <span className="tx-field-val">
-                      {latestTx.timestamp}
-                    </span>
-                  </div>
-                  <div className="tx-field">
-                    <span className="tx-field-label">Patient Record</span>
-                    <span className="tx-field-val">
-                      {latestTx.patientId}
-                    </span>
-                  </div>
-                  <div className="tx-field">
-                    <span className="tx-field-label">Network Consensus</span>
-                    <span className="tx-field-val" style={{ color: "#34d399" }}>
-                      Monad Parallel EVM (Finalized)
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
       </div>
 
-      {/* Section 3: Access History */}
-      <section
-        className="panel-card history-section"
-        aria-labelledby="access-history-title"
+      {/* Zero PHI Privacy Guarantee Footer Card */}
+      <footer
+        style={{
+          background: "rgba(14, 21, 37, 0.5)",
+          border: "1px solid rgba(255, 255, 255, 0.06)",
+          borderRadius: "14px",
+          padding: "1.25rem 1.75rem",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexWrap: "wrap",
+          gap: "1rem",
+        }}
       >
-        <div className="card-title-row">
-          <h2 id="access-history-title">
-            <svg
-              className="icon"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="8" y1="6" x2="21" y2="6" />
-              <line x1="8" y1="12" x2="21" y2="12" />
-              <line x1="8" y1="18" x2="21" y2="18" />
-              <line x1="3" y1="6" x2="3.01" y2="6" />
-              <line x1="3" y1="12" x2="3.01" y2="12" />
-              <line x1="3" y1="18" x2="3.01" y2="18" />
-            </svg>
-            Access History
-          </h2>
-          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
-            <span className="card-badge">
-              {history.length} {history.length === 1 ? "Record" : "Records"}
-            </span>
-            {history.length > 0 && (
-              <button
-                className="reset-btn"
-                onClick={resetToInitialState}
-                title="Reset back to empty state"
-              >
-                Clear / Reset
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="table-responsive">
-          <table className="custom-table">
-            <thead>
-              <tr>
-                <th>Patient ID</th>
-                <th>Requester</th>
-                <th>Reason</th>
-                <th>Timestamp</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {history.length === 0 ? (
-                /* Initial State Required: "No access records yet." */
-                <tr className="table-empty-row">
-                  <td colSpan={5}>
-                    <div className="table-empty-box">
-                      <svg
-                        width="38"
-                        height="38"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                        <polyline points="14 2 14 8 20 8" />
-                      </svg>
-                      <p style={{ fontWeight: 500, fontSize: "1rem" }}>
-                        No access records yet.
-                      </p>
-                      <span style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>
-                        Access events will be recorded here with verifiable on-chain metadata.
-                      </span>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                history.map((record) => (
-                  <tr key={record.id}>
-                    <td>
-                      <span className="id-badge">{record.patientId}</span>
-                    </td>
-                    <td>
-                      <div className="requester-cell">
-                        <span className="requester-avatar"></span>
-                        <span>{record.requester}</span>
-                      </div>
-                    </td>
-                    <td style={{ fontWeight: 500 }}>{record.reason}</td>
-                    <td style={{ color: "var(--text-secondary)", fontSize: "0.83rem" }}>
-                      {record.timestamp}
-                    </td>
-                    <td>
-                      <span className="badge-status-verified">
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                        {record.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {/* Section 4: Security Information */}
-      <aside
-        className="security-banner"
-        aria-label="Security and privacy architecture notice"
-      >
-        <div className="security-icon-circle" aria-hidden="true">
-          <svg
-            width="26"
-            height="26"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <div
+            style={{
+              width: "32px",
+              height: "32px",
+              borderRadius: "8px",
+              background: "rgba(16, 185, 129, 0.15)",
+              color: "#34d399",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </svg>
-        </div>
-        <div className="security-content">
-          <span className="security-tag">HIPAA Compliant Architecture</span>
-          <p className="security-message">
-            Medical records remain securely off-chain. Only access metadata is recorded on the blockchain.
-          </p>
-          <div className="security-architecture-pills">
-            <span className="arch-pill off-chain">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></svg>
-              Off-Chain: PHI & Clinical Notes (AES-256 Encrypted)
-            </span>
-            <span className="arch-pill on-chain">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
-              On-Chain: Immutable Access Hashes & Timestamps
-            </span>
+            🛡
+          </div>
+          <div>
+            <div style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-primary)" }}>
+              Zero Protected Health Information (PHI) On-Chain
+            </div>
+            <div style={{ fontSize: "0.78rem", color: "var(--text-secondary)" }}>
+              Strict compliance: only immutable cryptographic metadata and access reasons are audited.
+            </div>
           </div>
         </div>
-      </aside>
 
-      {/* Footer */}
-      <footer className="app-footer">
-        <div>
-          <span>MedAccess Security Node • Monad High-Throughput EVM</span>
-        </div>
-        <div>
-          <span>Zero-Knowledge Audit Trail • End-to-End Integrity</span>
+        <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+          Contract: {MEDICAL_ACCESS_LOGGER_ADDRESS.substring(0, 10)}...{MEDICAL_ACCESS_LOGGER_ADDRESS.slice(-8)}
         </div>
       </footer>
     </div>
