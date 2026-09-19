@@ -1,23 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { useAccount } from "wagmi";
 import { WalletButton } from "@/components/WalletButton";
 import { ContractStatusCard } from "@/components/ContractStatusCard";
-import { MEDICAL_ACCESS_LOGGER_ADDRESS } from "@/config/contract";
+import { AccessLogForm } from "@/components/AccessLogForm";
+import { AccessHistory } from "@/components/AccessHistory";
+import { useContractContext } from "@/context/ContractContext";
 
 export default function Home() {
   const { isConnected, address } = useAccount();
-  const [patientId, setPatientId] = useState("");
-  const [reason, setReason] = useState("");
-
-  const sampleReasons = [
-    "Emergency Care Review",
-    "Cardiology Consultation",
-    "Prescription Audit",
-    "Pre-Surgical Clearance",
-    "HIPAA Compliance Verification",
-  ];
+  const { contractAddress } = useContractContext();
 
   return (
     <div className="dashboard-container">
@@ -177,180 +170,22 @@ export default function Home() {
               STEP 3: SMART CONTRACT
             </div>
             <div style={{ fontSize: "0.92rem", fontWeight: 600, color: "#34d399" }}>
-              Active on Monad Testnet
+              MedicalAccessLogger Active
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Grid: Smart Contract Status & Access Logger Preview */}
+      {/* Main Grid: Smart Contract Status & Access Logger Form */}
       <div className="dashboard-grid">
         {/* Left Column: Live Smart Contract Connection via Wagmi / Viem */}
         <ContractStatusCard />
 
-        {/* Right Column: Access Logging Interface (Prepared for Next Step) */}
-        <section className="panel-card" aria-labelledby="access-record-title">
-          <div className="card-title-row">
-            <h2 id="access-record-title">
-              <svg
-                className="icon"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="16" y1="13" x2="8" y2="13" />
-                <line x1="16" y1="17" x2="8" y2="17" />
-                <polyline points="10 9 9 9 8 9" />
-              </svg>
-              Access Log Entry
-            </h2>
-            <span
-              className="card-badge"
-              style={{
-                background: "rgba(56, 189, 248, 0.1)",
-                color: "#38bdf8",
-                borderColor: "rgba(56, 189, 248, 0.25)",
-              }}
-            >
-              Contract Write Ready
-            </span>
-          </div>
+        {/* Right Column: Live Access Logging Interface */}
+        <AccessLogForm />
 
-          <div
-            style={{
-              background: "rgba(245, 158, 11, 0.1)",
-              border: "1px solid rgba(245, 158, 11, 0.25)",
-              borderRadius: "10px",
-              padding: "0.85rem 1rem",
-              fontSize: "0.84rem",
-              color: "#fcd34d",
-              display: "flex",
-              alignItems: "flex-start",
-              gap: "0.6rem",
-            }}
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              style={{ flexShrink: 0, marginTop: "2px" }}
-            >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-            <div>
-              <strong>Flow Checkpoint:</strong> Wallet & Contract connectivity is active. The{" "}
-              <code>logAccess</code> on-chain transaction execution will be wired in the upcoming step.
-            </div>
-          </div>
-
-          <form
-            className="access-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-            }}
-          >
-            <div className="form-group">
-              <label htmlFor="patient-id-input" className="form-label">
-                <span>Patient Record ID / Reference</span>
-                <span className="req">*Off-chain Reference Only</span>
-              </label>
-              <div className="input-container">
-                <svg
-                  className="input-icon"
-                  width="17"
-                  height="17"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
-                </svg>
-                <input
-                  id="patient-id-input"
-                  type="text"
-                  className="form-input"
-                  placeholder="e.g. PAT-9042 or REF-8821"
-                  value={patientId}
-                  onChange={(e) => setPatientId(e.target.value)}
-                  disabled={!isConnected}
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="reason-input" className="form-label">
-                <span>Reason for Access</span>
-                <span className="req">*Audit Trail Justification</span>
-              </label>
-              <div className="input-container">
-                <svg
-                  className="input-icon"
-                  width="17"
-                  height="17"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-                <input
-                  id="reason-input"
-                  type="text"
-                  className="form-input"
-                  placeholder="e.g. Emergency Care Consultation"
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  disabled={!isConnected}
-                />
-              </div>
-              <div className="quick-reasons">
-                {sampleReasons.map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    className="tag-btn"
-                    onClick={() => setReason(r)}
-                    disabled={!isConnected}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <button
-              type="button"
-              className="btn-primary"
-              disabled={true}
-              style={{
-                opacity: 0.7,
-                cursor: "not-allowed",
-              }}
-              title="logAccess transaction will be activated in the next step"
-            >
-              <span>logAccess() Ready for Activation</span>
-            </button>
-          </form>
-        </section>
+        {/* Full-width On-Chain Access History Table */}
+        <AccessHistory />
       </div>
 
       {/* Zero PHI Privacy Guarantee Footer Card */}
@@ -393,7 +228,7 @@ export default function Home() {
         </div>
 
         <div style={{ fontSize: "0.78rem", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
-          Contract: {MEDICAL_ACCESS_LOGGER_ADDRESS.substring(0, 10)}...{MEDICAL_ACCESS_LOGGER_ADDRESS.slice(-8)}
+          Contract: {contractAddress.substring(0, 10)}...{contractAddress.slice(-8)}
         </div>
       </footer>
     </div>

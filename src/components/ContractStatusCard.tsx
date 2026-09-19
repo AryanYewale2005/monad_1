@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAccount, useReadContract } from "wagmi";
 import {
   MEDICAL_ACCESS_LOGGER_ADDRESS,
@@ -8,11 +8,11 @@ import {
 } from "@/config/contract";
 import { MONAD_TESTNET_CHAIN_ID } from "@/config/monad";
 
+import { useContractContext } from "@/context/ContractContext";
+
 export function ContractStatusCard() {
   const { address, isConnected } = useAccount();
-  const [contractAddress, setContractAddress] = useState<`0x${string}`>(
-    MEDICAL_ACCESS_LOGGER_ADDRESS
-  );
+  const { contractAddress, setContractAddress, refreshTrigger } = useContractContext();
   const [customAddressInput, setCustomAddressInput] = useState("");
   const [isEditingAddress, setIsEditingAddress] = useState(false);
 
@@ -58,6 +58,14 @@ export function ContractStatusCard() {
       enabled: Boolean(address),
     },
   });
+
+  // Auto-refetch when a new log is logged
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      refetchLogs();
+      if (address) refetchAuth();
+    }
+  }, [refreshTrigger, refetchLogs, refetchAuth, address]);
 
   const handleRefresh = () => {
     refetchAdmin();
@@ -134,18 +142,18 @@ export function ContractStatusCard() {
               background: isContractReachable
                 ? "rgba(16, 185, 129, 0.15)"
                 : isZeroBytecode
-                ? "rgba(239, 68, 68, 0.15)"
-                : "rgba(245, 158, 11, 0.15)",
+                  ? "rgba(239, 68, 68, 0.15)"
+                  : "rgba(245, 158, 11, 0.15)",
               color: isContractReachable
                 ? "#6ee7b7"
                 : isZeroBytecode
-                ? "#fca5a5"
-                : "#fcd34d",
+                  ? "#fca5a5"
+                  : "#fcd34d",
               borderColor: isContractReachable
                 ? "rgba(16, 185, 129, 0.3)"
                 : isZeroBytecode
-                ? "rgba(239, 68, 68, 0.3)"
-                : "rgba(245, 158, 11, 0.3)",
+                  ? "rgba(239, 68, 68, 0.3)"
+                  : "rgba(245, 158, 11, 0.3)",
               display: "flex",
               alignItems: "center",
               gap: "0.35rem",
@@ -159,58 +167,82 @@ export function ContractStatusCard() {
                 backgroundColor: isContractReachable
                   ? "#10b981"
                   : isZeroBytecode
-                  ? "#ef4444"
-                  : "#f59e0b",
+                    ? "#ef4444"
+                    : "#f59e0b",
               }}
             />
             {isContractReachable
               ? "Contract Active"
               : isZeroBytecode
-              ? "Remix VM / No Bytecode on Testnet"
-              : "Checking RPC..."}
+                ? "Remix VM / No Bytecode on Testnet"
+                : "Checking RPC..."}
           </span>
         </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-        {/* Warning banner if address is Remix VM / 0x bytecode */}
+        {/* Warning banner if address is Remix VM / EOA / 0x bytecode */}
         {isZeroBytecode && (
           <div
             style={{
               background: "rgba(239, 68, 68, 0.08)",
               border: "1px solid rgba(239, 68, 68, 0.3)",
               borderRadius: "10px",
-              padding: "0.75rem 1rem",
-              fontSize: "0.82rem",
+              padding: "0.85rem 1rem",
+              fontSize: "0.84rem",
               color: "#fca5a5",
               display: "flex",
               flexDirection: "column",
-              gap: "0.4rem",
+              gap: "0.5rem",
             }}
           >
             <div style={{ fontWeight: 600, display: "flex", alignItems: "center", gap: "0.4rem" }}>
               <span>⚠️</span>
-              <span>Notice: Deployed address has no bytecode on Monad Testnet</span>
+              <span>Address has no contract bytecode on Monad Testnet</span>
             </div>
             <p style={{ color: "#e2e8f0", fontSize: "0.8rem", lineHeight: "1.4" }}>
-              <code>0xd9145CCE...</code> is Remix&apos;s default internal JavaScript VM address. To deploy to the actual Monad Testnet, in Remix select <strong>Environment: Injected Provider - MetaMask</strong> and ensure your wallet is on Monad Testnet (Chain ID 10143).
+              {contractAddress.toLowerCase() === "0x7dab4382fc76280fe2324ddf7ea41cde3a2bf57a"
+                ? "Target address is currently set to your MetaMask wallet address (EOA) instead of the deployed contract address."
+                : contractAddress.toLowerCase() === "0xd9145cce52d386f254917e481eb44e9943f39138"
+                ? "Target address is currently set to Remix's default in-memory VM address."
+                : "The current address is not a deployed contract on Monad Testnet."}
             </p>
-            <button
-              onClick={() => setIsEditingAddress(true)}
-              style={{
-                alignSelf: "flex-start",
-                padding: "0.3rem 0.6rem",
-                borderRadius: "6px",
-                background: "rgba(255, 255, 255, 0.1)",
-                border: "1px solid rgba(255, 255, 255, 0.2)",
-                color: "#fff",
-                fontSize: "0.75rem",
-                cursor: "pointer",
-                marginTop: "0.2rem",
-              }}
-            >
-              Update Contract Address ✎
-            </button>
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.2rem" }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setContractAddress(MEDICAL_ACCESS_LOGGER_ADDRESS);
+                  setIsEditingAddress(false);
+                }}
+                style={{
+                  padding: "0.45rem 0.8rem",
+                  borderRadius: "8px",
+                  background: "var(--accent-cyan)",
+                  border: "none",
+                  color: "#000",
+                  fontWeight: 600,
+                  fontSize: "0.78rem",
+                  cursor: "pointer",
+                }}
+              >
+                ✓ Set to Deployed Contract: {MEDICAL_ACCESS_LOGGER_ADDRESS.substring(0, 10)}...
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsEditingAddress(true)}
+                style={{
+                  padding: "0.45rem 0.75rem",
+                  borderRadius: "8px",
+                  background: "rgba(255, 255, 255, 0.08)",
+                  border: "1px solid rgba(255, 255, 255, 0.2)",
+                  color: "#fff",
+                  fontSize: "0.78rem",
+                  cursor: "pointer",
+                }}
+              >
+                Custom Address ✎
+              </button>
+            </div>
           </div>
         )}
 
@@ -369,12 +401,12 @@ export function ContractStatusCard() {
               {isAdminLoading
                 ? "Reading on-chain..."
                 : isZeroBytecode
-                ? "Pending deployment"
-                : adminAddress
-                ? `${(adminAddress as string).substring(0, 8)}...${(adminAddress as string).substring(
-                    (adminAddress as string).length - 6
-                  )}`
-                : "Not deployed"}
+                  ? "Pending deployment"
+                  : adminAddress
+                    ? `${(adminAddress as string).substring(0, 8)}...${(adminAddress as string).substring(
+                      (adminAddress as string).length - 6
+                    )}`
+                    : "Not deployed"}
             </div>
           </div>
 
